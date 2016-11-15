@@ -1,5 +1,7 @@
 #include <iostream>
+#include <iomanip>
 #include <vector>
+#include <bitset>
 
 #include "des.hpp"
 
@@ -7,18 +9,21 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-	block_t source = 0xDEADBEEF;
-	key_t key = 0xABACABA;
+    block_t source = 1ull;
+    my_key_t key = 1ull;//0xABACABA;
 
-	block_t encrypted = encrypt(source, key);
-	block_t decrypted = decrypt(encrypted, key);
+    cout << bitset<64>(source) << endl;
+    cout << bitset<64>(key) << endl;
 
-	cout << source << endl;
-	cout << key << endl;
-	cout << endl;
-	cout << encrypted;
-	cout << endl;
-	cout << decrypted << endl;
+    cout << "encrypt: " << endl;
+    block_t encrypted = encrypt(source, key);
+    cout << "decrypt: " << endl;
+    block_t decrypted = decrypt(encrypted, key);
 
-	return 0;
+    cout << endl;
+    cout << encrypted;
+    cout << endl;
+    cout << decrypted << endl;
+
+    return 0;
 }
