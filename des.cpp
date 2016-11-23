@@ -1,1 +1,97 @@
 #include "des.hpp"
+
+extern three_quarter_blocks_t keys;
+
+half_block_t f(half_block_t block, three_quarter_block_t key)
+{
+	half_block_t result;
+	three_quarter_block_t t = permutate<HALF_BLOCK_SIZE, THREE_QUARTER_BLOCK_SIZE>(block, E, 1);
+	t ^= key;
+
+	for (int it = 0; it < 8; ++it)
+	{
+		int o_offset = it * 6;
+		int r_offset = it * 4;
+		bitset<2> a;
+		bitset<4> b;
+		a[0] = t[o_offset + 0];
+		a[1] = t[o_offset + 5];
+
+		b[0] = t[o_offset + 1];
+		b[1] = t[o_offset + 2];
+		b[2] = t[o_offset + 3];
+		b[3] = t[o_offset + 4];
+
+		auto ai = a.to_ulong(), bi = b.to_ulong();
+
+		bitset<4> c = S[it][ai][bi];
+
+		result[r_offset + 0] = c[0];
+		result[r_offset + 1] = c[0];
+		result[r_offset + 2] = c[0];
+		result[r_offset + 3] = c[0];
+	}
+
+	result = permutate<HALF_BLOCK_SIZE, HALF_BLOCK_SIZE>(result, P, 1);
+	return result;
+}
+
+three_quarter_blocks_t generate_keys(key_t key)
+{
+	key_t t = permutate<KEY_SIZE, KEY_SIZE>(key, K, 1);
+	three_quarter_blocks_t result(16);
+
+	for (int i = 0; i < 16; ++i)
+	{
+		auto p = split<KEY_SIZE>(t);
+		p.first = lc_shift<HALF_KEY_SIZE>(p.first, TL[i]);
+		p.second = lc_shift<HALF_KEY_SIZE>(p.second, TL[i]);
+
+		t = merge<KEY_SIZE>(p);
+		result[i] = permutate<KEY_SIZE, THREE_QUARTER_BLOCK_SIZE>(t, KP, 1);
+	}
+
+	return result;
+}
+
+block_t transform(block_t block, three_quarter_block_t key)
+{
+	auto p = split<BLOCK_SIZE>(block);
+	return merge<BLOCK_SIZE>(p.second, p.first ^ f(p.second, key));
+}
+
+block_t i_transform(block_t block, three_quarter_block_t key)
+{
+	auto p = split<BLOCK_SIZE>(block);
+	return merge<BLOCK_SIZE>(p.first, p.second ^ f(p.first, key));
+}
+
+three_quarter_blocks_t keys;
+
+block_t encrypt(const block_t source_data, key_t key)
+{
+	keys = generate_keys(key);
+	block_t data = source_data;
+
+	data = permutate<BLOCK_SIZE, BLOCK_SIZE>(data, IP, 1);
+	for (int i = 0; i < 16; ++i)
+	{
+		data = transform(data, keys[i]);
+	}
+	data = permutate<BLOCK_SIZE, BLOCK_SIZE>(data, IPI, 1);
+	return data;
+}
+
+block_t decrypt(const block_t encrypted_data, key_t key)
+{
+	keys = generate_keys(key);
+	block_t data = encrypted_data;
+
+	data = permutate<BLOCK_SIZE, BLOCK_SIZE>(data, IP, 1);
+	for (int i = 15; i >= 0; --i)
+	{
+		data = transform(data, keys[i]);
+	}
+	data = permutate<BLOCK_SIZE, BLOCK_SIZE>(data, IPI, 1);
+	return data;
+}

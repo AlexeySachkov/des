@@ -6,23 +6,25 @@
 
 using namespace std;
 
-typedef uint64_t block_t;
-typedef uint64_t my_key_t;
-typedef uint32_t half_block_t;
-typedef vector<my_key_t> keys_t;
+#define BLOCK_SIZE 64
+#define HALF_BLOCK_SIZE (BLOCK_SIZE / 2)
+#define THREE_QUARTER_BLOCK_SIZE (BLOCK_SIZE / 4 * 3)
+#define KEY_SIZE 56
+#define HALF_KEY_SIZE (KEY_SIZE / 2)
+
+typedef bitset<BLOCK_SIZE> block_t;
+typedef bitset<HALF_BLOCK_SIZE> half_block_t;
+typedef bitset<THREE_QUARTER_BLOCK_SIZE> three_quarter_block_t;
+typedef bitset<KEY_SIZE> key_t;
+typedef bitset<HALF_KEY_SIZE> half_key_t;
+
+
+typedef vector<three_quarter_block_t> three_quarter_blocks_t;
 typedef vector<int> permutation_table_t;
 typedef vector<int> shift_table_t;
 typedef vector<vector<int>> transform_table_t;
 typedef vector<transform_table_t> transform_tables_t;
 
-#define GET_BIT(block, pos) ( ( ( block ) & ( 1ull << ( pos ) ) ) != 0 )
-#define UPD_BIT(block, bit, pos) ( ( ( bit ) == 0 ) ? CLR_BIT( block, pos ) : SET_BIT( block, pos ) )
-#define CLR_BIT(block, pos) ( ( block ) &= ( ~ ( 1ull << ( pos ) ) ) )
-#define SET_BIT(block, pos) ( ( block ) |= ( 1ull << ( pos ) ) )
-
-#define HI(block) ( ( half_block_t ) ( ( block ) >> 32 ) )
-#define LO(block) ( ( half_block_t ) ( block ) )
-#define MAKE_BLOCK(hi, lo) ( ( block_t ) ( ( ( ( block_t ) ( hi ) ) << 32 ) | ( ( block_t ) ( lo ) ) ) )
 
 const shift_table_t TL = {
     1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1
@@ -128,175 +130,84 @@ const transform_tables_t S = {
     }
 };
 
-struct data
+template<int From, int To>
+bitset<To> permutate(bitset<From> block, const permutation_table_t permutation_table, int first_bit_index = 0)
 {
-    size_t size;
-    vector<char> _data;
-};
-
-int make_number(char a, char b)
-{
-    int result = 0;
-    UPD_BIT(result, a, 1);
-    UPD_BIT(result, b, 0);
-    return result;
-}
-
-int make_number(char a, char b, char c, char d)
-{
-    int result = 0;
-    UPD_BIT(result, a, 3);
-    UPD_BIT(result, b, 2);
-    UPD_BIT(result, c, 1);
-    UPD_BIT(result, d, 0);
-    return result;
-}
-
-block_t permutate(block_t block, const permutation_table_t permutation_table)
-{
-    block_t result = 0;
+	assert(To == permutation_table.size());
+    bitset<To> result;
 
     for (size_t i = 0; i < permutation_table.size(); ++i)
     {
-        UPD_BIT(result, GET_BIT(block, permutation_table[i] - 1), i);
+    	result[i] = block[permutation_table[i] - first_bit_index];
     }
 
     return result;
 }
 
-block_t permutate(half_block_t block, const permutation_table_t permutation_table)
+template<int Size>
+bitset<Size> lc_shift(bitset<Size> block, int times)
 {
-    block_t result = 0;
+	for (int it = 0; it < times; ++it)
+	{
+		int l = block[0];
+		block <<= 1;
+		block[Size - 1] = l;
+	}
 
-    for (size_t i = 0; i < permutation_table.size(); ++i)
-    {
-        UPD_BIT(result, GET_BIT(block, permutation_table[i] - 1), i);
-    }
-
-    return result;
-}
-half_block_t permutate_half(half_block_t block, const permutation_table_t permutation_table)
-{
-    half_block_t result = 0;
-
-    for (size_t i = 0; i < permutation_table.size(); ++i)
-    {
-        UPD_BIT(result, GET_BIT(block, permutation_table[i] - 1), i);
-    }
-
-    return result;
+	return block;
 }
 
-half_block_t f(half_block_t block, my_key_t key)
+template<int Size>
+pair<bitset<Size / 2>, bitset<Size / 2>> split(bitset<Size> key)
 {
-    half_block_t result = 0;
-    block_t t = permutate(block, E);
-    t ^= key;
+	constexpr int half_size = Size / 2;
+	bitset<half_size> l, r;
+	for (int i = 0; i < half_size; ++i)
+	{
+		l[i] = key[i];
+	}
+	for (int i = 0; i < half_size; ++i)
+	{
+		r[i] = key[half_size + i];
+	}
 
-    for (int it = 0, i = 47, j = 31; it < 8; ++it, i -= 6, j -= 4)
-    {
-        int a = make_number(GET_BIT(t, i - 0), GET_BIT(t, i - 5));
-        int b = make_number(GET_BIT(t, i - 1), GET_BIT(t, i - 2), GET_BIT(t, i - 3), GET_BIT(t, i - 4));
-        int c = S[it][a][b];
-        UPD_BIT(result, GET_BIT(c, 3), j - 0);
-        UPD_BIT(result, GET_BIT(c, 2), j - 1);
-        UPD_BIT(result, GET_BIT(c, 1), j - 2);
-        UPD_BIT(result, GET_BIT(c, 0), j - 3);
-    }
-
-    result = permutate_half(result, P);
-    return result;
+	return { l, r };
 }
 
-my_key_t shift_key_left(my_key_t key, int shift)
+template<int Size>
+bitset<Size> merge(pair<bitset<Size / 2>, bitset<Size / 2>> p)
 {
-    for (int i = 0; i < shift; ++i)
-    {
-        key <<= 1;
-        UPD_BIT(key, GET_BIT(key, 56), 0);
-    }
-    return key;
+	bitset<Size> result;
+	constexpr int half_size = Size / 2;
+
+	for (int i = 0; i < half_size; ++i)
+	{
+		result[i] = p.first[i];
+	}
+	for (int i = 0; i < half_size; ++i)
+	{
+		result[half_size + i] = p.second[i];
+	}
+
+	return result;
 }
 
-my_key_t shift_key_right(my_key_t key, int shift)
+template<int Size>
+bitset<Size> merge(bitset<Size / 2> l, bitset<Size / 2> r)
 {
-    for (int i = 0; i < shift; ++i)
-    {
-        UPD_BIT(key, GET_BIT(key, 0), 56);
-        key >>= 1;
-    }
-    return key;
+	return merge<Size>({ l, r });
 }
 
-keys_t get_keys(my_key_t key)
-{
-    my_key_t t = permutate(key, K);
-    cout << "fkp: " << bitset<64>(t) << endl;
-    keys_t result(16);
-    for (int i = 0; i < 16; ++i)
-    {
-        t = shift_key_left(t, TL[i]);
-        result[i] = permutate(t, KP);
-    }
+half_block_t f(half_block_t block, three_quarter_block_t key);
 
-    return result;
-}
+three_quarter_blocks_t generate_keys(key_t key);
 
-keys_t i_get_keys(my_key_t key)
-{
-    my_key_t t = permutate(key, K);
-    keys_t result(16);
-    for (int i = 0; i < 16; ++i)
-    {
-        t = shift_key_right(t, TL[i]);
-        result[i] = permutate(t, KP);
-    }
+block_t transform(block_t block, three_quarter_block_t key);
 
-    return result;
-}
+block_t i_transform(block_t block, three_quarter_block_t key);
 
-block_t transform(block_t block, my_key_t key)
-{
-    half_block_t lo = LO(block);
-    half_block_t hi = HI(block);
+block_t encrypt(const block_t source_data, key_t key);
 
-    return MAKE_BLOCK(lo, hi ^ f(lo, key));
-}
+block_t decrypt(const block_t encrypted_data, key_t key);
 
-block_t i_transform(block_t block, my_key_t key)
-{
-    half_block_t lo = LO(block);
-    half_block_t hi = HI(block);
-
-    return MAKE_BLOCK(lo ^ f(hi, key), hi);
-}
-keys_t keys;
-block_t encrypt(const block_t source_data, my_key_t key)
-{
-    keys = get_keys(key);
-    block_t data = source_data;
-    data = permutate(data, IP);
-    cout << "IP: " << bitset<64>(data) << endl;
-    for (int i = 0; i < 16; ++i)
-    {
-        cout << i << ": " << hex << keys[i] << " " << bitset<64>(keys[i]) << endl;
-        data = transform(data, keys[i]);
-    }
-    data = permutate(data, IPI);
-    return data;
-}
-
-block_t decrypt(const block_t encrypted_data, my_key_t key)
-{
-    //keys_t keys = i_get_keys(key);
-    block_t data = encrypted_data;
-    reverse(keys.begin(), keys.end());
-    data = permutate(data, IP);
-    for (int i = 0; i < 16; ++i)
-    {
-        cout << i << ": " << hex << keys[i] << " " << bitset<64>(keys[i]) << endl;
-        data = transform(data, keys[i]);
-    }
-    data = permutate(data, IPI);
-    return data;
-}
+three_quarter_blocks_t keys;
