@@ -2,7 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include <cassert>
-#include <bitset>
+#include <array>
 
 using namespace std;
 
@@ -12,11 +12,11 @@ using namespace std;
 #define KEY_SIZE 56
 #define HALF_KEY_SIZE (KEY_SIZE / 2)
 
-typedef bitset<BLOCK_SIZE> block_t;
-typedef bitset<HALF_BLOCK_SIZE> half_block_t;
-typedef bitset<THREE_QUARTER_BLOCK_SIZE> three_quarter_block_t;
-typedef bitset<KEY_SIZE> key_t;
-typedef bitset<HALF_KEY_SIZE> half_key_t;
+typedef array<int, BLOCK_SIZE> block_t;
+typedef array<int, HALF_BLOCK_SIZE> half_block_t;
+typedef array<int, THREE_QUARTER_BLOCK_SIZE> three_quarter_block_t;
+typedef array<int, KEY_SIZE> key_t;
+typedef array<int, HALF_KEY_SIZE> half_key_t;
 
 
 typedef vector<three_quarter_block_t> three_quarter_blocks_t;
@@ -130,11 +130,24 @@ const transform_tables_t S = {
     }
 };
 
+int xor_(int, int);
+
+template<int Size>
+array<int, Size> xor_(const array<int, Size> &a, const array<int, Size> &b)
+{
+    array<int, Size> res;
+    for (size_t i = 0; i < Size; ++i)
+    {
+        res[i] = xor_(a[i], b[i]);
+    }
+    return res;
+}
+
 template<int From, int To>
-bitset<To> permutate(bitset<From> block, const permutation_table_t permutation_table, int first_bit_index = 0)
+array<int, To> permutate(array<int, From> block, const permutation_table_t permutation_table, int first_bit_index = 0)
 {
 	assert(To == permutation_table.size());
-    bitset<To> result;
+    array<int, To>  result;
 
     for (size_t i = 0; i < permutation_table.size(); ++i)
     {
@@ -145,23 +158,28 @@ bitset<To> permutate(bitset<From> block, const permutation_table_t permutation_t
 }
 
 template<int Size>
-bitset<Size> lc_shift(bitset<Size> block, int times)
+array<int, Size> lc_shift(const array<int, Size> &block, int times)
 {
+    array<int, Size> t = block;
+
 	for (int it = 0; it < times; ++it)
 	{
-		int l = block[0];
-		block <<= 1;
-		block[Size - 1] = l;
+		int l = t[0];
+        for (size_t i = 0; i < Size - 1; ++i)
+        {
+            t[i] = t[i + 1];
+        }
+        t[Size - 1] = l;
 	}
 
-	return block;
+	return t;
 }
 
 template<int Size>
-pair<bitset<Size / 2>, bitset<Size / 2>> split(bitset<Size> key)
+pair<array<int, Size / 2>, array<int, Size / 2>> split(array<int, Size> key)
 {
 	constexpr int half_size = Size / 2;
-	bitset<half_size> l, r;
+	array<int, half_size> l, r;
 	for (int i = 0; i < half_size; ++i)
 	{
 		l[i] = key[i];
@@ -175,9 +193,9 @@ pair<bitset<Size / 2>, bitset<Size / 2>> split(bitset<Size> key)
 }
 
 template<int Size>
-bitset<Size> merge(pair<bitset<Size / 2>, bitset<Size / 2>> p)
+array<int, Size> merge(pair<array<int, Size / 2>, array<int, Size / 2>> p)
 {
-	bitset<Size> result;
+	array<int, Size> result;
 	constexpr int half_size = Size / 2;
 
 	for (int i = 0; i < half_size; ++i)
@@ -193,14 +211,14 @@ bitset<Size> merge(pair<bitset<Size / 2>, bitset<Size / 2>> p)
 }
 
 template<int Size>
-bitset<Size> merge(bitset<Size / 2> l, bitset<Size / 2> r)
+array<int, Size> merge(array<int, Size / 2> l, array<int, Size / 2> r)
 {
 	return merge<Size>({ l, r });
 }
 
 half_block_t f(half_block_t block, three_quarter_block_t key);
 
-three_quarter_blocks_t generate_keys(key_t key);
+three_quarter_blocks_t generate_keys(const key_t &key);
 
 block_t transform(block_t block, three_quarter_block_t key);
 
@@ -209,5 +227,3 @@ block_t i_transform(block_t block, three_quarter_block_t key);
 block_t encrypt(const block_t source_data, key_t key);
 
 block_t decrypt(const block_t encrypted_data, key_t key);
-
-three_quarter_blocks_t keys;

@@ -1,36 +1,34 @@
-cmake_minimum_required (VERSION 2.6)
+cmake_minimum_required(VERSION 3.6)
 
-project(DES CXX)
+set(PROJECT_NAME "DES")
+set(APP_TARGET_NAME "${PROJECT_NAME}_app")
+set(DES_LIB_TARGET_NAME "${PROJECT_NAME}_lib")
+set(TESTS_TARGET_NAME "${PROJECT_NAME}_tests")
 
-SET(
-    app_sources
-    main.cpp
-)
+project(${PROJECT_NAME})
 
-SET(
-	lib_sources
-	des.cpp
-)
+set(CMAKE_CXX_STANDARD 11)
+add_definitions("-Wall")
 
-add_definitions( -std=c++11 )
+#enable_testing()
+#find_package(GTest REQUIRED)
 
-add_library(
-	des
-	STATIC
-	${lib_sources}
-)
+include_directories(${GTEST_INCLUDE_DIRS})
 
-add_executable(
-    des_app
-    ${app_sources}
-)
+set(APP_SOURCE_FILES main.cpp)
+set(DES_LIB_SOURCE_FILES des.cpp)
+set(TESTS_SOURCE_FILES tests.cpp)
 
-target_link_libraries(
-	des_app
-	des
-)
+add_library(${DES_LIB_TARGET_NAME} STATIC ${DES_LIB_SOURCE_FILES})
 
-add_dependencies(
-	des_app
-	des
-)
+add_executable(${APP_TARGET_NAME} ${APP_SOURCE_FILES})
+add_executable(${TESTS_TARGET_NAME} ${TESTS_SOURCE_FILES})
+
+add_dependencies(${APP_TARGET_NAME} ${DES_LIB_TARGET_NAME})
+target_link_libraries(${APP_TARGET_NAME} ${DES_LIB_TARGET_NAME})
+
+add_dependencies(${TESTS_TARGET_NAME} ${DES_LIB_TARGET_NAME})
+target_link_libraries(${TESTS_TARGET_NAME} ${DES_LIB_TARGET_NAME})
+
+#add_dependencies(${TESTS_TARGET_NAME} ${GTEST_BOTH_LIBRARIES})
+#target_link_libraries(${TESTS_TARGET_NAME} ${GTEST_BOTH_LIBRARIES})

@@ -1,19 +1,31 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
-#include <bitset>
+#include <array>
 
 #include "des.hpp"
 
 using namespace std;
 
+template<size_t N>
+void print(array<int, N>&a)
+{
+	for (auto &s: a)
+	{
+		cout << s;
+	}
+	cout << endl;
+}
+
 int main(int argc, char* argv[])
 {
-    block_t source = 1ull;
-    key_t key = 0xABACABA;
+    block_t source;
+    source.fill(0);
+    source[63] = 1;
+    key_t key = {1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1};
 
-    cout << source << endl;
-    cout << key << endl;
+    print(source);
+    print(key);
 
     cout << "encrypt: " << endl;
     block_t encrypted = encrypt(source, key);
@@ -21,11 +33,12 @@ int main(int argc, char* argv[])
     block_t decrypted = decrypt(encrypted, key);
 
     cout << endl;
-    cout << encrypted.to_ullong() << endl;
-    cout << encrypted;
     cout << endl;
-    cout << decrypted.to_ullong() << endl;
-    cout << decrypted << endl;
+    print(source);
+    cout << endl;
+    print(encrypted);
+    cout << endl;
+    print(decrypted);
 
     return 0;
 }

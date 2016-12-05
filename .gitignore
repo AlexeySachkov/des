@@ -1,1 +1,4 @@
 build/
+externals/
+cmake-build-*/
+.idea/
