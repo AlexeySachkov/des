@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <array>
+#include <iostream>
 
 using namespace std;
 
@@ -144,10 +145,10 @@ array<int, Size> xor_(const array<int, Size> &a, const array<int, Size> &b)
 }
 
 template<int From, int To>
-array<int, To> permutate(array<int, From> block, const permutation_table_t permutation_table, int first_bit_index = 0)
+array<int, To> permutate(const array<int, From> &block, const permutation_table_t permutation_table, int first_bit_index = 0)
 {
 	assert(To == permutation_table.size());
-    array<int, To>  result;
+    array<int, To> result;
 
     for (size_t i = 0; i < permutation_table.size(); ++i)
     {
@@ -224,6 +225,16 @@ block_t transform(block_t block, three_quarter_block_t key);
 
 block_t i_transform(block_t block, three_quarter_block_t key);
 
-block_t encrypt(const block_t source_data, key_t key);
+block_t encrypt(const block_t source_data, const key_t &key);
 
-block_t decrypt(const block_t encrypted_data, key_t key);
+block_t decrypt(const block_t encrypted_data, const key_t &key);
+
+template<size_t N>
+void print(const array<int, N> &a)
+{
+    for (auto &s: a)
+    {
+        cout << s;
+    }
+    cout << endl;
+}

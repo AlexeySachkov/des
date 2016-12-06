@@ -48,15 +48,17 @@ half_block_t f(half_block_t block, three_quarter_block_t key)
 three_quarter_blocks_t generate_keys(const key_t &key)
 {
 	block_t _key;
+	_key.fill(0);
 	for (size_t i = 0, j = 0; i < BLOCK_SIZE; ++i)
 	{
-		if (i % 8 == 0)
+		if ((i + 1) % 8 == 0)
 		{
-			++j;
+			continue;
 		}
 		else
 		{
-			_key[BLOCK_SIZE - i] = key[i - j];
+			_key[i] = key[j];
+			++j;
 		}
 	}
 	key_t t = permutate<BLOCK_SIZE, KEY_SIZE>(_key, K, 1);
@@ -67,8 +69,8 @@ three_quarter_blocks_t generate_keys(const key_t &key)
 		auto p = split<KEY_SIZE>(t);
 		p.first = lc_shift<HALF_KEY_SIZE>(p.first, TL[i]);
 		p.second = lc_shift<HALF_KEY_SIZE>(p.second, TL[i]);
-
 		t = merge<KEY_SIZE>(p);
+		
 		result[i] = permutate<KEY_SIZE, THREE_QUARTER_BLOCK_SIZE>(t, KP, 1);
 	}
 
@@ -84,10 +86,10 @@ block_t transform(block_t block, three_quarter_block_t key)
 block_t i_transform(block_t block, three_quarter_block_t key)
 {
 	auto p = split<BLOCK_SIZE>(block);
-	return merge<BLOCK_SIZE>(p.first, xor_<HALF_BLOCK_SIZE>(p.second, f(p.first, key)));
+	return merge<BLOCK_SIZE>(xor_<HALF_BLOCK_SIZE>(p.second, f(p.first, key)), p.first);
 }
 
-block_t encrypt(const block_t source_data, key_t key)
+block_t encrypt(const block_t source_data, const key_t &key)
 {
 	keys = generate_keys(key);
 	block_t data = source_data;
@@ -101,7 +103,7 @@ block_t encrypt(const block_t source_data, key_t key)
 	return data;
 }
 
-block_t decrypt(const block_t encrypted_data, key_t key)
+block_t decrypt(const block_t encrypted_data, const key_t &key)
 {
 	keys = generate_keys(key);
 	block_t data = encrypted_data;
@@ -109,7 +111,7 @@ block_t decrypt(const block_t encrypted_data, key_t key)
 	data = permutate<BLOCK_SIZE, BLOCK_SIZE>(data, IP, 1);
 	for (int i = 15; i >= 0; --i)
 	{
-		data = transform(data, keys[i]);
+		data = i_transform(data, keys[i]);
 	}
 	data = permutate<BLOCK_SIZE, BLOCK_SIZE>(data, IPI, 1);
 	return data;

@@ -7,22 +7,14 @@
 
 using namespace std;
 
-template<size_t N>
-void print(array<int, N>&a)
-{
-	for (auto &s: a)
-	{
-		cout << s;
-	}
-	cout << endl;
-}
-
 int main(int argc, char* argv[])
 {
     block_t source;
     source.fill(0);
+    source[14] = 1;
+    source[28] = 1;
     source[63] = 1;
-    key_t key = {1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1};
+    const key_t key = {1,1,1,0,1,1,1,1,1,1,0,1,1,0,1,1,1,0,1,1,0,1,1,1,0,1,1,1,1,1,1,0,1,1,1,0,1,1,0,1,1,1,1,1,1,0,1,0,1,1,1,1,0,1,0,1};
 
     print(source);
     print(key);
