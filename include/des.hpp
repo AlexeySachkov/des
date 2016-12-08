@@ -19,8 +19,9 @@ typedef array<int, THREE_QUARTER_BLOCK_SIZE> three_quarter_block_t;
 typedef array<int, KEY_SIZE> key_t;
 typedef array<int, HALF_KEY_SIZE> half_key_t;
 
-
+typedef vector<block_t> blocks_t;
 typedef vector<three_quarter_block_t> three_quarter_blocks_t;
+typedef three_quarter_blocks_t keys_t;
 typedef vector<int> permutation_table_t;
 typedef vector<int> shift_table_t;
 typedef vector<vector<int>> transform_table_t;
@@ -219,15 +220,15 @@ array<int, Size> merge(array<int, Size / 2> l, array<int, Size / 2> r)
 
 half_block_t f(half_block_t block, three_quarter_block_t key);
 
-three_quarter_blocks_t generate_keys(const key_t &key);
+keys_t generate_keys(const key_t &key);
 
 block_t transform(block_t block, three_quarter_block_t key);
 
 block_t i_transform(block_t block, three_quarter_block_t key);
 
-block_t encrypt(const block_t source_data, const key_t &key);
+block_t encrypt(const block_t source_data, const keys_t &key);
 
-block_t decrypt(const block_t encrypted_data, const key_t &key);
+block_t decrypt(const block_t encrypted_data, const keys_t &key);
 
 template<size_t N>
 void print(const array<int, N> &a)

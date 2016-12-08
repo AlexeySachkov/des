@@ -1,9 +1,9 @@
-#include "des.hpp"
 #include <iostream>
 #include <bitset>
-using namespace std;
 
-three_quarter_blocks_t keys;
+#include "des.hpp"
+
+using namespace std;
 
 int xor_(int a, int b)
 {
@@ -45,7 +45,7 @@ half_block_t f(half_block_t block, three_quarter_block_t key)
 	return result;
 }
 
-three_quarter_blocks_t generate_keys(const key_t &key)
+keys_t generate_keys(const key_t &key)
 {
 	block_t _key;
 	_key.fill(0);
@@ -89,9 +89,8 @@ block_t i_transform(block_t block, three_quarter_block_t key)
 	return merge<BLOCK_SIZE>(xor_<HALF_BLOCK_SIZE>(p.second, f(p.first, key)), p.first);
 }
 
-block_t encrypt(const block_t source_data, const key_t &key)
+block_t encrypt(const block_t source_data, const keys_t &keys)
 {
-	keys = generate_keys(key);
 	block_t data = source_data;
 
 	data = permutate<BLOCK_SIZE, BLOCK_SIZE>(data, IP, 1);
@@ -103,9 +102,8 @@ block_t encrypt(const block_t source_data, const key_t &key)
 	return data;
 }
 
-block_t decrypt(const block_t encrypted_data, const key_t &key)
+block_t decrypt(const block_t encrypted_data, const keys_t &keys)
 {
-	keys = generate_keys(key);
 	block_t data = encrypted_data;
 
 	data = permutate<BLOCK_SIZE, BLOCK_SIZE>(data, IP, 1);
